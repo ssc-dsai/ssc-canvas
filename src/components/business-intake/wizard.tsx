@@ -3,6 +3,11 @@
 import React, { useState, useEffect, Fragment } from "react";
 import { cn } from "@/lib/utils";
 import { ArtifactMarkdownV3, ArtifactV3 } from "@/types";
+import { 
+  createPlaceholderArtifact, 
+  storeFormDataForAI,
+  generateDocumentTitle
+} from "./document-utils";
 
 // Keys for localStorage
 const WIZARD_DATA_KEY = "business-intake-wizard-data";
@@ -133,22 +138,9 @@ export function BusinessIntakeWizard({ onComplete, onCancel, threadId }: Busines
   const handleFinish = () => {
     console.log("Creating AI-generated Use Case document with data:", formData);
     
-    // First, set a placeholder artifact so the canvas shows up
-    const placeholderContent = `# Artificial Intelligence Use Case Document
-  
-*Generating your comprehensive AI Use Case document...*
-
-Please wait while we analyze your inputs and create a detailed document.`;
-
-    const placeholderArtifact: ArtifactV3 = {
-      currentIndex: 1,
-      contents: [{
-        index: 1,
-        type: "text",
-        title: "AI Use Case Document - " + formData.problem.substring(0, 10),
-        fullMarkdown: placeholderContent
-      } as ArtifactMarkdownV3]
-    };
+    // Create a placeholder artifact
+    const documentTitle = generateDocumentTitle(formData.problem);
+    const placeholderArtifact = createPlaceholderArtifact(documentTitle);
     
     // Clear localStorage
     localStorage.removeItem(WIZARD_DATA_KEY);
@@ -156,12 +148,12 @@ Please wait while we analyze your inputs and create a detailed document.`;
     localStorage.removeItem(WIZARD_ACTIVE_KEY);
     localStorage.removeItem(WIZARD_THREAD_ID_KEY);
     
+    // Store form data for AI processing
+    storeFormDataForAI(formData, threadId);
+    
     // Call the completion handler with the placeholder artifact
     console.log("Calling onComplete with placeholder - AI will generate full document");
     onComplete(placeholderArtifact);
-    
-    // Also set a flag to indicate we need to generate the document with AI
-    localStorage.setItem("need-ai-document-generation", JSON.stringify(formData));
   };
 
   // Handle cancel
