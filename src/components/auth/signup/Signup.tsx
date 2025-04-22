@@ -75,7 +75,7 @@ export function Signup() {
             alt="LangChain Logo"
             className="rounded-full"
           />
-          Open Canvas
+          SSC Canvas3
         </div>
       </div>
       <div className="lg:p-8">

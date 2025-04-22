@@ -7,6 +7,7 @@ import {
   useRef,
   Dispatch,
   SetStateAction,
+  useCallback,
 } from "react";
 import {
   convertToArtifactV3,
@@ -84,6 +85,8 @@ type GraphContentType = {
   userData: UserDataContextType;
   threadData: ThreadDataContextType;
   assistantsData: AssistantsDataContextType;
+  showCanvas: () => void;
+  setGraphContextValue: (key: string, value: any) => void;
 };
 
 const GraphContext = createContext<GraphContentType | undefined>(undefined);
@@ -133,6 +136,7 @@ export function GraphProvider({ children }: { children: ReactNode }) {
   const [firstTokenReceived, setFirstTokenReceived] = useState(false);
   const [runId, setRunId] = useState<string>();
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
+  const [contextValues, setContextValues] = useState<Record<string, any>>({});
 
   useEffect(() => {
     if (userData.user) return;
@@ -910,6 +914,14 @@ export function GraphProvider({ children }: { children: ReactNode }) {
     );
   };
 
+  // Generic setter function
+  const setGraphContextValue = useCallback((key: string, value: any) => {
+    setContextValues(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  // Retrieve showCanvas from the contextValues, provide a default no-op function
+  const showCanvas = contextValues.showCanvas || (() => { console.warn("showCanvas not yet registered in context"); });
+
   const contextValue: GraphContentType = {
     userData,
     threadData,
@@ -935,6 +947,8 @@ export function GraphProvider({ children }: { children: ReactNode }) {
       switchSelectedThread,
       setUpdateRenderedArtifactRequired,
     },
+    showCanvas,
+    setGraphContextValue,
   };
 
   return (

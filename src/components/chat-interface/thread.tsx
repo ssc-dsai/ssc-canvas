@@ -1,6 +1,6 @@
 import { ThreadPrimitive } from "@assistant-ui/react";
-import { ArrowDownIcon, SquarePen } from "lucide-react";
-import { Dispatch, FC, SetStateAction } from "react";
+import { ArrowDownIcon, SquarePen, Menu } from "lucide-react";
+import { Dispatch, FC, SetStateAction, useState } from "react";
 import { TooltipIconButton } from "../ui/assistant-ui/tooltip-icon-button";
 import { ProgrammingLanguageOptions } from "@/types";
 import ModelSelector from "./model-selector";
@@ -14,6 +14,8 @@ import { AssistantMessage, UserMessage } from "./messages";
 import { useToast } from "@/hooks/use-toast";
 import { useLangSmithLinkToolUI } from "../tool-hooks/LangSmithLinkToolUI";
 import { useGraphContext } from "@/contexts/GraphContext";
+import Link from "next/link";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 const ThreadScrollToBottom: FC = () => {
   return (
@@ -57,6 +59,8 @@ export const Thread: FC<ThreadProps> = (props: ThreadProps) => {
 
   useLangSmithLinkToolUI();
 
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+
   const handleCreateThread = async () => {
     if (!user) {
       toast({
@@ -82,12 +86,36 @@ export const Thread: FC<ThreadProps> = (props: ThreadProps) => {
 
   return (
     <ThreadPrimitive.Root className="flex flex-col h-full">
-      <div className="pr-3 pl-6 pt-3 pb-2 flex flex-row gap-4 items-center justify-between">
+      <div className="pr-3 pl-6 pt-2 pb-1 flex flex-row gap-4 items-center justify-between border-b">
         <div className="flex items-center justify-start gap-2 text-gray-600">
+          <TooltipIconButton
+            tooltip="Toggle chat history"
+            variant="ghost"
+            className="w-fit h-fit p-2"
+            onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+          >
+            <Menu className="w-5 h-5 text-gray-600" />
+          </TooltipIconButton>
           <ThreadHistory
             switchSelectedThreadCallback={switchSelectedThreadCallback}
+            isOpen={isHistoryOpen}
+            onClose={() => setIsHistoryOpen(false)}
           />
-          <TighterText className="text-xl">Open Canvas</TighterText>
+          <Link 
+            href="/" 
+            className="flex items-center gap-2 no-underline text-gray-600 hover:text-gray-800 transition-colors"
+          >
+            <div className="h-12 w-24 relative">
+              <img 
+                src="/aip_logo.png" 
+                alt="DSAI Logo" 
+                className="h-full w-full object-contain" 
+              />
+            </div>
+            <TighterText className="text-xl">
+              SSC Canvas
+            </TighterText>
+          </Link>
           {!hasChatStarted && (
             <ModelSelector
               chatStarted={false}
@@ -116,6 +144,7 @@ export const Thread: FC<ThreadProps> = (props: ThreadProps) => {
         {!hasChatStarted && (
           <ThreadWelcome
             handleQuickStart={handleQuickStart}
+            setChatStarted={setChatStarted}
             composer={<Composer chatStarted={false} userId={props.userId} />}
           />
         )}

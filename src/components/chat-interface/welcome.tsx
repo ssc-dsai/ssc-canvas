@@ -13,62 +13,72 @@ interface QuickStartButtonsProps {
     language?: ProgrammingLanguageOptions
   ) => void;
   composer: React.ReactNode;
+  setChatStarted: (started: boolean) => void;
 }
 
-const QuickStartPrompts = () => {
+const QuickStartPrompts = ({ setChatStarted }: QuickStartButtonsProps) => {
   const threadRuntime = useThreadRuntime();
 
-  const handleClick = (text: string) => {
+  const handleStartIntakeClick = () => {
     threadRuntime.append({
       role: "user",
-      content: [{ type: "text", text }],
+      content: [{ type: "text", text: "Let's start creating a Business Intake Document." }],
     });
+    setChatStarted(true);
   };
 
   return (
-    <div className="flex flex-col w-full gap-2 text-gray-700">
-      <div className="flex gap-2 w-full">
+    <div className="flex flex-col w-full gap-2 text-gray-700 items-center">
+      <div className="flex gap-2 w-full max-w-xs">
         <Button
-          onClick={(e) =>
-            handleClick((e.target as HTMLButtonElement).textContent || "")
-          }
+          onClick={handleStartIntakeClick}
           variant="outline"
-          className="flex-1"
-        >
-          <TighterText>Write me a TODO app in React</TighterText>
-        </Button>
-        <Button
-          onClick={(e) =>
-            handleClick((e.target as HTMLButtonElement).textContent || "")
-          }
-          variant="outline"
-          className="flex-1"
+          className="flex-1 hover:bg-gray-50 transition-colors"
         >
           <TighterText>
-            Explain why the sky is blue in a short essay
+            Start Business Intake Document
+            <span className="hidden">
+              Tasks: Follow these tasks in order
+              1. The purpose of this engagement document is to inform potential clients of the current engagement and business intake process for incubating AI and IA use case with the DSAI team.
+              2. Create a sample template for the intake document
+              3. Goal is to fill out section 1.3, YOU MUST PROMPT the user to retrieve the problem statement, start by givin an example of an AI use case problem statement.
+
+             The document should follow the following Table of Contents Format:
+              Artificial Intelligence Use Case
+              -1    Introduction
+              -1.1  Purpose
+              -1.2  Background
+              -1.3  Proposed Use Case
+                a.  Problem
+                b.  Challenges
+                c.  Scope
+                d.  Constraints
+                e.  Success Criteria
+                f.  Timeline
+                g.  Desired Outcome
+                h.  Scope
+              -1.4  Measuring Success
+                a.  Existing Metrics or KPI
+              -1.5  Artificial Intelligne and Machine Learning Overview
+                a.  Artificial Intelligence Lifecycle
+              -2    CTOB AI COE Standard Service Offering
+              -2.1  High-Level Flow
+              -2.2  Roles and Responsibilities
+                a.  AICOE Responsibilities
+                b.  Client Responsibilities
+              -2.3  AICOE Extended Service Offering
+              -2.4  Continuous Monitoring
+              -3    Use Case Planning
+              -3.1  SSC AI Viability Model
+              -3.2  Responsible Use of Artificial Intelligence (AI)
+              -3.3  Human Resources and Costing
+              -3.4  Training
+              -3.5  Funding
+              -3.6  Acceptable Testing
+              -3.7  Day-2 Operations
+              -3.8  Contact Information
+            </span>
           </TighterText>
-        </Button>
-      </div>
-      <div className="flex gap-2 w-full">
-        <Button
-          onClick={(e) =>
-            handleClick((e.target as HTMLButtonElement).textContent || "")
-          }
-          variant="outline"
-          className="flex-1"
-        >
-          <TighterText>
-            Help me draft an email to my professor Craig
-          </TighterText>
-        </Button>
-        <Button
-          onClick={(e) =>
-            handleClick((e.target as HTMLButtonElement).textContent || "")
-          }
-          variant="outline"
-          className="flex-1"
-        >
-          <TighterText>Write a web scraping program in Python</TighterText>
         </Button>
       </div>
     </div>
@@ -82,24 +92,13 @@ const QuickStartButtons = (props: QuickStartButtonsProps) => {
 
   return (
     <div className="flex flex-col gap-8 items-center justify-center w-full">
-      <div className="flex flex-col gap-6">
-        <p className="text-gray-600 text-sm">Start with a blank canvas</p>
-        <div className="flex flex-row gap-1 items-center justify-center w-full">
-          <Button
-            variant="outline"
-            className="transition-colors text-gray-600 flex items-center justify-center gap-2 w-[250px] h-[64px]"
-            onClick={() => props.handleQuickStart("text")}
-          >
-            <TighterText>New Markdown</TighterText>
-            <NotebookPen />
-          </Button>
-          <ProgrammingLanguagesDropdown handleSubmit={handleLanguageSubmit} />
-        </div>
-      </div>
-      <div className="flex flex-col gap-6 mt-2 w-full">
-        <p className="text-gray-600 text-sm">or with a message</p>
-        <QuickStartPrompts />
-        {props.composer}
+      <div className="flex flex-col gap-6 w-full items-center">
+        <p className="text-gray-600 text-sm">Let's get started</p>
+        <QuickStartPrompts 
+          setChatStarted={props.setChatStarted} 
+          handleQuickStart={props.handleQuickStart} 
+          composer={props.composer} 
+        />
       </div>
     </div>
   );
@@ -110,29 +109,40 @@ interface ThreadWelcomeProps {
     type: "text" | "code",
     language?: ProgrammingLanguageOptions
   ) => void;
+  setChatStarted: (started: boolean) => void;
   composer: React.ReactNode;
 }
 
-export const ThreadWelcome: FC<ThreadWelcomeProps> = (
-  props: ThreadWelcomeProps
-) => {
+export const ThreadWelcome: FC<ThreadWelcomeProps> = (props: ThreadWelcomeProps) => {
   return (
     <ThreadPrimitive.Empty>
-      <div className="flex items-center justify-center mt-16 w-full">
+      <div className="flex items-center justify-center mt-8 w-full">
         <div className="text-center max-w-3xl w-full">
-          <Avatar className="mx-auto">
-            <AvatarImage src="/lc_logo.jpg" alt="LangChain Logo" />
-            <AvatarFallback>LC</AvatarFallback>
-          </Avatar>
+          <div className="h-16 w-28 mx-auto relative mb-4">
+            <img 
+              src="/aip_logo.png" 
+              alt="DSAI Logo" 
+              className="h-full w-full object-contain" 
+            />
+          </div>
           <TighterText className="mt-4 text-lg font-medium">
-            What would you like to write today?
+            Welcome to Business Intake Canvas
           </TighterText>
+          <p className="mt-2 text-sm text-gray-600">
+            Let's create a comprehensive business intake document together. We'll guide you through the process step by step in the chat.
+          </p>
           <div className="mt-8 w-full">
             <QuickStartButtons
               composer={props.composer}
               handleQuickStart={props.handleQuickStart}
+              setChatStarted={props.setChatStarted}
             />
           </div>
+          {props.composer && (
+            <div className="mt-4 max-w-2xl mx-auto">
+              {props.composer}
+            </div>
+          )}
         </div>
       </div>
     </ThreadPrimitive.Empty>

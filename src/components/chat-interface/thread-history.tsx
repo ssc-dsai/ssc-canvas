@@ -10,10 +10,13 @@ import { PiChatsCircleLight } from "react-icons/pi";
 import { TighterText } from "../ui/header";
 import { useGraphContext } from "@/contexts/GraphContext";
 import { useToast } from "@/hooks/use-toast";
-import React from "react";
+import React, { FC } from "react";
+import { Dialog } from "../ui/dialog";
 
 interface ThreadHistoryProps {
   switchSelectedThreadCallback: (thread: Thread) => void;
+  isOpen: boolean;
+  onClose: () => void;
 }
 
 interface ThreadProps {
@@ -192,7 +195,11 @@ function ThreadsList(props: ThreadsListProps) {
   );
 }
 
-export function ThreadHistoryComponent(props: ThreadHistoryProps) {
+export const ThreadHistory: FC<ThreadHistoryProps> = ({
+  switchSelectedThreadCallback,
+  isOpen,
+  onClose
+}) => {
   const { toast } = useToast();
   const {
     userData: { user },
@@ -204,7 +211,6 @@ export function ThreadHistoryComponent(props: ThreadHistoryProps) {
     },
     graphData: { setMessages, switchSelectedThread },
   } = useGraphContext();
-  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     if (typeof window == "undefined" || userThreads.length || !user) return;
@@ -230,47 +236,36 @@ export function ThreadHistoryComponent(props: ThreadHistoryProps) {
     userThreads,
     (thread) => {
       switchSelectedThread(thread);
-      props.switchSelectedThreadCallback(thread);
-      setOpen(false);
+      switchSelectedThreadCallback(thread);
     },
     handleDeleteThread
   );
 
   return (
-    <Sheet open={open} onOpenChange={setOpen}>
-      <SheetTrigger asChild>
-        <TooltipIconButton
-          tooltip="New chat"
-          variant="ghost"
-          className="w-fit h-fit p-2"
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <Sheet open={isOpen} onOpenChange={onClose}>
+        <SheetContent
+          side="left"
+          className="border-none overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
         >
-          <PiChatsCircleLight
-            className="w-6 h-6 text-gray-600"
-            strokeWidth={8}
-          />
-        </TooltipIconButton>
-      </SheetTrigger>
-      <SheetContent
-        side="left"
-        className="border-none overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
-      >
-        <TighterText className="px-2 text-lg text-gray-600">
-          Chat History
-        </TighterText>
-        {isUserThreadsLoading && !userThreads.length ? (
-          <div className="flex flex-col gap-1 px-2 pt-3">
-            {Array.from({ length: 25 }).map((_, i) => (
-              <LoadingThread key={`loading-thread-${i}`} />
-            ))}
-          </div>
-        ) : !userThreads.length ? (
-          <p className="px-3 text-gray-500">No items found in history.</p>
-        ) : (
-          <ThreadsList groupedThreads={groupedThreads} />
-        )}
-      </SheetContent>
-    </Sheet>
+          <TighterText className="px-2 text-lg text-gray-600">
+            Chat History
+          </TighterText>
+          {isUserThreadsLoading && !userThreads.length ? (
+            <div className="flex flex-col gap-1 px-2 pt-3">
+              {Array.from({ length: 25 }).map((_, i) => (
+                <LoadingThread key={`loading-thread-${i}`} />
+              ))}
+            </div>
+          ) : !userThreads.length ? (
+            <p className="px-3 text-gray-500">No items found in history.</p>
+          ) : (
+            <ThreadsList groupedThreads={groupedThreads} />
+          )}
+        </SheetContent>
+      </Sheet>
+    </Dialog>
   );
-}
+};
 
-export const ThreadHistory = React.memo(ThreadHistoryComponent);
+export const ThreadHistoryComponent = React.memo(ThreadHistory);

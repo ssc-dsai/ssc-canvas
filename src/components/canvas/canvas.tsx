@@ -12,24 +12,36 @@ import {
   ArtifactV3,
   ProgrammingLanguageOptions,
 } from "@/types";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useGraphContext } from "@/contexts/GraphContext";
 import React from "react";
+import { BusinessIntakeProgress } from "../business-intake/progress-indicator";
+import { BusinessIntakeManager } from "@/agent/open-canvas/business-intake-manager";
 
 export function CanvasComponent() {
-  const { threadData, graphData, userData } = useGraphContext();
+  const { threadData, graphData, userData, setGraphContextValue } = useGraphContext();
   const { user } = userData;
   const { threadId, clearThreadsWithNoValues, setModelName } = threadData;
   const { setArtifact } = graphData;
   const { toast } = useToast();
   const [chatStarted, setChatStarted] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [isCanvasVisible, setIsCanvasVisible] = useState(false);
+  const [intakeManager] = useState(() => new BusinessIntakeManager());
+
+  const showCanvas = useCallback(() => {
+    console.log("Setting canvas visible");
+    setIsCanvasVisible(true);
+  }, []);
+
+  useEffect(() => {
+    setGraphContextValue('showCanvas', showCanvas);
+  }, [showCanvas, setGraphContextValue]);
 
   useEffect(() => {
     if (!threadId || !user) return;
-    // Clear threads with no values
     clearThreadsWithNoValues(user.id);
-  }, [threadId, user]);
+  }, [threadId, user, clearThreadsWithNoValues]);
 
   const handleQuickStart = (
     type: "text" | "code",
@@ -44,6 +56,7 @@ export function CanvasComponent() {
       return;
     }
     setChatStarted(true);
+    setIsCanvasVisible(true);
 
     let artifactContent: ArtifactCodeV3 | ArtifactMarkdownV3;
     if (type === "code" && language) {
@@ -67,9 +80,6 @@ export function CanvasComponent() {
       currentIndex: 1,
       contents: [artifactContent],
     };
-    // Do not worry about existing items in state. This should
-    // never occur since this action can only be invoked if
-    // there are no messages/artifacts in the thread.
     setArtifact(newArtifact);
     setIsEditing(true);
   };
@@ -78,21 +88,27 @@ export function CanvasComponent() {
     <main className="h-screen flex flex-row">
       <div
         className={cn(
-          "transition-all duration-700",
-          chatStarted ? "w-[35%]" : "w-full",
-          "h-full mr-auto bg-gray-50/70 shadow-inner-right"
+          "transition-all duration-500 ease-in-out",
+          isCanvasVisible ? "w-[30%]" : "w-full",
+          "h-full bg-gray-50/70 shadow-inner-right flex-shrink-0"
         )}
       >
         <ContentComposerChatInterface
           switchSelectedThreadCallback={(thread) => {
-            // Chat should only be "started" if there are messages present
             if ((thread.values as Record<string, any>)?.messages?.length) {
               setChatStarted(true);
               setModelName(
                 thread?.metadata?.customModelName as ALL_MODEL_NAMES
               );
+              
+              const threadValues = thread.values as Record<string, any>;
+              if (threadValues.artifact) {
+                setIsCanvasVisible(true);
+                setArtifact(threadValues.artifact);
+              }
             } else {
               setChatStarted(false);
+              setIsCanvasVisible(false);
             }
           }}
           setChatStarted={setChatStarted}
@@ -100,8 +116,8 @@ export function CanvasComponent() {
           handleQuickStart={handleQuickStart}
         />
       </div>
-      {chatStarted && (
-        <div className="w-full ml-auto">
+      {isCanvasVisible && (
+        <div className="w-[70%] h-full flex-grow">
           <ArtifactRenderer setIsEditing={setIsEditing} isEditing={isEditing} />
         </div>
       )}
