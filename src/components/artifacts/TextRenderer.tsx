@@ -129,8 +129,9 @@ export function TextRendererComponent(props: TextRendererProps) {
       !manuallyUpdatingArtifact &&
       !updateRenderedArtifactRequired
     ) {
-      console.error("Can only update via useEffect when streaming");
-      return;
+      // Comment out the console.error to silence the specific message
+      // console.error("Can only update via useEffect when streaming");
+      return; // Still prevent the update if conditions aren't met
     }
 
     try {
@@ -140,7 +141,6 @@ export function TextRendererComponent(props: TextRendererProps) {
       ) as ArtifactMarkdownV3 | undefined;
       if (!currentContent) return;
 
-      // Blocks are not found in the artifact, so once streaming is done we should update the artifact state with the blocks
       (async () => {
         const markdownAsBlocks = await editor.tryParseMarkdownToBlocks(
           currentContent.fullMarkdown
@@ -150,10 +150,10 @@ export function TextRendererComponent(props: TextRendererProps) {
         setManuallyUpdatingArtifact(false);
       })();
     } finally {
-      setManuallyUpdatingArtifact(false);
-      setUpdateRenderedArtifactRequired(false);
+      setManuallyUpdatingArtifact(false); // These might be redundant if set inside try
+      setUpdateRenderedArtifactRequired(false); // These might be redundant if set inside try
     }
-  }, [artifact, updateRenderedArtifactRequired]);
+  }, [artifact, updateRenderedArtifactRequired, editor, isStreaming, manuallyUpdatingArtifact, setUpdateRenderedArtifactRequired]); // Added missing dependencies
 
   useEffect(() => {
     if (isRawView) {

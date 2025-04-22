@@ -1,0 +1,88 @@
+'use client'; // Required if using App Router hooks
+
+import { useEffect, useState } from 'react';
+import { usePathname, useRouter, useParams } from 'next/navigation';
+// Remove useThreadRuntime if only used for threadId for URL sync
+// import { useThreadRuntime } from '@assistant-ui/react';
+import { ContentComposerChatInterface } from '@/components/canvas/content-composer';
+import { Thread as ThreadType } from "@langchain/langgraph-sdk";
+import { useGraphContext } from '@/contexts/GraphContext'; // Import the context hook
+
+// ... other imports for your component (e.g., CanvasComponent, ChatInterface)
+
+export default function ChatPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const params = useParams();
+  // Get threadId and switch function from context instead of runtime
+  const { threadData, graphData } = useGraphContext();
+  const { threadId, setThreadId } = threadData; // Get threadId and setter from context's threadData
+  const { switchSelectedThread } = graphData; // Get the context's switch function
+
+  console.log(`ChatPage Render - Context ThreadID: ${threadId}`);
+
+  // Effect to update URL when CONTEXT threadId changes
+  useEffect(() => {
+    console.log(`URL Effect Triggered: Current Pathname: ${pathname}, Context ThreadID: ${threadId}`);
+    const targetPathPrefix = '/chat/'; // Adjust if needed
+    if (threadId) {
+      const targetPath = `${targetPathPrefix}${threadId}`;
+      if (pathname !== targetPath) {
+        console.log(`Updating URL: Pushing path ${targetPath}`);
+        router.push(targetPath);
+      } else {
+        console.log(`URL Effect: Pathname ${pathname} already matches context thread ${threadId}. No update needed.`);
+      }
+    } else {
+       console.log("URL Effect: Context threadId is null or undefined. Not updating URL.");
+    }
+    // Depend on the threadId from the context
+  }, [threadId, pathname, router]);
+
+  // Effect to load thread from URL param (use context's setter)
+  useEffect(() => {
+    const threadIdFromUrl = params.threadId as string | undefined;
+    if (threadIdFromUrl && threadIdFromUrl !== threadId) { // Compare with context threadId
+        console.log(`Loading thread from URL param: ${threadIdFromUrl}`);
+        // --- Use the context's switch function to load the thread ---
+        // This assumes getThreadById is available and switchSelectedThread handles loading
+        // You might need to adjust this logic based on how thread loading is implemented
+        // Fetch the full thread object first if needed
+        threadData.getThreadById(threadIdFromUrl).then(thread => {
+            if (thread) {
+                switchSelectedThread(thread); // Call the context's switch function
+            } else {
+                console.error(`Failed to load thread ${threadIdFromUrl} from URL`);
+                // Optionally, navigate away or show an error
+            }
+        });
+    } else if (!threadIdFromUrl && !threadId) {
+        console.log("No threadId in URL or context, potentially creating a new one.");
+    }
+  }, [params.threadId, threadId, switchSelectedThread, threadData]); // Add dependencies
+
+  // State/props setup
+  const [hasChatStarted, setChatStarted] = useState(false); // This state might need to sync with thread loading
+  const handleQuickStart = (type: "text" | "code", language?: any): void => { console.log("Quick start:", type, language); };
+
+  // --- Update the callback to use the context's switch function ---
+  const switchSelectedThreadCallback = (thread: ThreadType): void => {
+      console.log("Switching thread callback triggered for:", thread.thread_id);
+      // Call the function from the context
+      switchSelectedThread(thread);
+      // Determine if chat has started based on the loaded thread
+      setChatStarted(!!(thread.values as Record<string, any>)?.messages?.length);
+  };
+  // --- End Modification ---
+
+  return (
+    <div className="h-screen flex flex-col">
+      <ContentComposerChatInterface
+         switchSelectedThreadCallback={switchSelectedThreadCallback}
+         setChatStarted={setChatStarted}
+         hasChatStarted={hasChatStarted}
+         handleQuickStart={handleQuickStart}
+      />
+    </div>
+  );
+} 

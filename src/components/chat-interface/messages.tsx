@@ -1,145 +1,93 @@
 "use client";
 
 import {
+  ActionBarPrimitive,
+  getExternalStoreMessage,
   MessagePrimitive,
   useMessage,
 } from "@assistant-ui/react";
-import React, { Dispatch, SetStateAction, type FC, useState, useEffect } from "react";
-import { format } from 'date-fns';
+import React, { Dispatch, SetStateAction, type FC } from "react";
 
 import { MarkdownText } from "@/components/ui/assistant-ui/markdown-text";
-import { useFeedback } from "@/hooks/useFeedback";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { TighterText } from "../ui/header";
+import { HumanMessage } from "@langchain/core/messages";
 import { cn } from "@/lib/utils";
-import { TooltipIconButton } from "../ui/assistant-ui/tooltip-icon-button";
-import { ThumbsDown, ThumbsUp } from "lucide-react";
 
-interface AssistantFeedbackProps {
+interface AssistantMessageProps {
   runId: string | undefined;
   feedbackSubmitted: boolean;
   setFeedbackSubmitted: Dispatch<SetStateAction<boolean>>;
 }
 
-export const AssistantMessage: FC<AssistantFeedbackProps> = ({
+export const AssistantMessage: FC<AssistantMessageProps> = ({
   runId,
   feedbackSubmitted,
   setFeedbackSubmitted,
 }) => {
-  const { message } = useMessage();
-  const { feedback, handleFeedback } = useFeedback(
-    message.id,
-    runId,
-    feedbackSubmitted,
-    setFeedbackSubmitted
-  );
-
-  // State to hold the formatted time string
-  const [formattedTime, setFormattedTime] = useState<string>('');
-
-  useEffect(() => {
-    if (message.createdAt) {
-      // --- DEBUG LOG INSIDE EFFECT ---
-      console.log("AssistantMsg EFFECT:", message.id, "Formatting createdAt:", message.createdAt);
-      setFormattedTime(format(message.createdAt, 'p'));
-    }
-  }, [message.createdAt, message.id]);
-
-  // --- DEBUG LOG ---
-  console.log("Assistant Message:", message?.id, "createdAt:", message?.createdAt);
+  const message = useMessage();
+  const { isLast } = message;
 
   return (
-    <div className="flex flex-col gap-1 items-start group">
-      <MessagePrimitive.Content
-        className={cn(
-          "rounded-2xl p-3 text-sm max-w-2xl",
-          "rounded-bl-sm bg-gray-200"
-        )}
-        components={{ Text: MarkdownText }}
-      />
-      <div className="flex items-center gap-2 pl-1">
-        {/* Display time from state */}
-        {formattedTime && (
-          <span className="text-xs text-gray-500">
-            {formattedTime}
-          </span>
-        )}
-        {message.content && (
-          <AssistantFeedback
-            feedback={feedback}
-            handleFeedback={handleFeedback}
-          />
-        )}
+    <MessagePrimitive.Root className="relative grid w-full max-w-2xl grid-cols-[auto_1fr] grid-rows-[auto_auto] py-4 gap-x-4">
+      <Avatar className="col-start-1 row-span-full row-start-1">
+        <AvatarFallback>A</AvatarFallback>
+      </Avatar>
+
+      <div className={cn(
+        "col-start-2 row-start-1 my-1.5 max-w-xl break-words leading-7 text-sm",
+        "rounded-2xl p-3",
+        "rounded-bl-sm bg-gray-200"
+      )}>
+        <MessagePrimitive.Content components={{ Text: MarkdownText }} />
       </div>
-    </div>
+
+      {isLast && runId && (
+        <div className="col-start-2 row-start-2">
+          <span className="text-xs text-gray-400">(Feedback placeholder)</span>
+        </div>
+      )}
+    </MessagePrimitive.Root>
   );
 };
 
 export const UserMessage: FC = () => {
-  const { message } = useMessage();
-  // State to hold the formatted time string
-  const [formattedTime, setFormattedTime] = useState<string>('');
+  const msg = useMessage(getExternalStoreMessage<HumanMessage>);
+  const humanMessage = msg && !Array.isArray(msg) ? msg : undefined;
 
-  useEffect(() => {
-    if (message?.createdAt) {
-      // --- DEBUG LOG INSIDE EFFECT ---
-      console.log("UserMsg EFFECT:", message?.id, "Formatting createdAt:", message?.createdAt);
-      setFormattedTime(format(message.createdAt, 'p'));
-    }
-  }, [message?.createdAt, message?.id]);
-
-  if (!message) {
-    return null;
-  }
-
-  // --- DEBUG LOG ---
-  console.log("User Message:", message?.id, "createdAt:", message?.createdAt);
+  if (humanMessage?.additional_kwargs?.[/* OC_HIDE_FROM_UI_KEY ?? */ '__oc_hide_from_ui__']) return null;
 
   return (
-    <div className="flex flex-col gap-1 items-end">
-      <MessagePrimitive.Content
-        className={cn(
-          "rounded-2xl p-3 text-sm max-w-2xl",
-          "rounded-br-sm bg-[#333] text-white"
-        )}
-        components={{ Text: MarkdownText }}
-      />
-      {/* Display time from state */}
-      {formattedTime && (
-        <span className="text-xs text-gray-500 px-1">
-          {formattedTime}
-        </span>
-      )}
-    </div>
+    <MessagePrimitive.Root className="grid w-full max-w-2xl auto-rows-auto grid-cols-[minmax(72px,1fr)_auto] gap-y-2 py-4">
+      <div className={cn(
+         "col-start-2 row-start-1 max-w-xl break-words rounded-3xl px-5 py-2.5 text-sm",
+         "bg-[#333] text-white rounded-br-sm"
+      )}>
+        <MessagePrimitive.Content />
+      </div>
+    </MessagePrimitive.Root>
   );
 };
 
-const AssistantFeedback: FC<{
-  feedback: number | undefined;
-  handleFeedback: (newFeedback: number) => void;
-}> = ({ feedback, handleFeedback }) => {
+interface AssistantMessageBarProps {
+  runId: string;
+  feedbackSubmitted: boolean;
+  setFeedbackSubmitted: Dispatch<SetStateAction<boolean>>;
+}
+
+const AssistantMessageBarComponent = ({
+  runId,
+  feedbackSubmitted,
+  setFeedbackSubmitted,
+}: AssistantMessageBarProps) => {
   return (
-    <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-      <TooltipIconButton
-        tooltip="Good response"
-        variant={feedback === 1 ? "default" : "ghost"}
-        className={cn(
-          "size-6 p-1",
-          feedback === 1 ? "bg-green-100 text-green-700 hover:bg-green-200" : ""
-        )}
-        onClick={() => handleFeedback(1)}
-      >
-        <ThumbsUp className="w-4 h-4" />
-      </TooltipIconButton>
-      <TooltipIconButton
-        tooltip="Bad response"
-        variant={feedback === 0 ? "default" : "ghost"}
-        className={cn(
-          "size-6 p-1",
-          feedback === 0 ? "bg-red-100 text-red-700 hover:bg-red-200" : ""
-        )}
-        onClick={() => handleFeedback(0)}
-      >
-        <ThumbsDown className="w-4 h-4" />
-      </TooltipIconButton>
-    </div>
+    <ActionBarPrimitive.Root
+      hideWhenRunning
+      autohide="not-last"
+      className="flex items-center mt-2"
+    >
+      <span className="text-xs text-gray-400">(Feedback placeholder)</span>
+    </ActionBarPrimitive.Root>
   );
 };
+const AssistantMessageBar = React.memo(AssistantMessageBarComponent);

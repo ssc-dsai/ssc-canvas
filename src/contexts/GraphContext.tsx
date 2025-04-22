@@ -87,6 +87,7 @@ type GraphContentType = {
   assistantsData: AssistantsDataContextType;
   showCanvas: () => void;
   setGraphContextValue: (key: string, value: any) => void;
+  contextValues: Record<string, any>;
 };
 
 const GraphContext = createContext<GraphContentType | undefined>(undefined);
@@ -136,7 +137,9 @@ export function GraphProvider({ children }: { children: ReactNode }) {
   const [firstTokenReceived, setFirstTokenReceived] = useState(false);
   const [runId, setRunId] = useState<string>();
   const [feedbackSubmitted, setFeedbackSubmitted] = useState(false);
-  const [contextValues, setContextValues] = useState<Record<string, any>>({});
+  const [contextValues, setContextValues] = useState<Record<string, any>>({
+    isBRDProcess: false,
+  });
 
   useEffect(() => {
     if (userData.user) return;
@@ -860,6 +863,7 @@ export function GraphProvider({ children }: { children: ReactNode }) {
   };
 
   const switchSelectedThread = (thread: Thread) => {
+    console.log("GraphContext: switchSelectedThread called for", thread.thread_id);
     setUpdateRenderedArtifactRequired(true);
     setThreadSwitched(true);
     threadData.setThreadId(thread.thread_id);
@@ -880,6 +884,9 @@ export function GraphProvider({ children }: { children: ReactNode }) {
       messages: (thread.values as Record<string, any>)?.messages || undefined,
     };
     const castThreadValues = thread.values as Record<string, any>;
+
+    console.log("GraphContext: Raw messages from thread values:", castValues.messages);
+
     if (castThreadValues?.artifact) {
       if (isDeprecatedArtifactType(castThreadValues.artifact)) {
         castValues.artifact = convertToArtifactV3(castThreadValues.artifact);
@@ -892,26 +899,28 @@ export function GraphProvider({ children }: { children: ReactNode }) {
     lastSavedArtifact.current = castValues?.artifact;
 
     if (!castValues?.messages?.length) {
-      setMessages([]);
+      console.warn("GraphContext: Thread appears to have no messages. NOT clearing current messages for debugging.");
       setArtifact(castValues?.artifact);
       return;
     }
+
     setArtifact(castValues?.artifact);
-    setMessages(
-      castValues.messages.map((msg: Record<string, any>) => {
-        if (msg.response_metadata?.langSmithRunURL) {
-          msg.tool_calls = msg.tool_calls ?? [];
-          msg.tool_calls.push({
-            name: "langsmith_tool_ui",
-            args: { sharedRunURL: msg.response_metadata.langSmithRunURL },
-            id: msg.response_metadata.langSmithRunURL
-              ?.split("https://smith.langchain.com/public/")[1]
-              .split("/")[0],
-          });
-        }
-        return msg as BaseMessage;
-      })
-    );
+    const loadedMessages = castValues.messages.map((msg: Record<string, any>) => {
+      if (msg.response_metadata?.langSmithRunURL) {
+        msg.tool_calls = msg.tool_calls ?? [];
+        msg.tool_calls.push({
+          name: "langsmith_tool_ui",
+          args: { sharedRunURL: msg.response_metadata.langSmithRunURL },
+          id: msg.response_metadata.langSmithRunURL
+            ?.split("https://smith.langchain.com/public/")[1]
+            .split("/")[0],
+        });
+      }
+      return msg as BaseMessage;
+    });
+
+    console.log("GraphContext: Setting messages with loaded data:", loadedMessages);
+    setMessages(loadedMessages);
   };
 
   // Generic setter function
@@ -949,6 +958,7 @@ export function GraphProvider({ children }: { children: ReactNode }) {
     },
     showCanvas,
     setGraphContextValue,
+    contextValues,
   };
 
   return (

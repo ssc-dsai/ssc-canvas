@@ -2,7 +2,7 @@ import { isToday, isYesterday, isWithinInterval, subDays } from "date-fns";
 import { TooltipIconButton } from "../ui/assistant-ui/tooltip-icon-button";
 import { Button } from "../ui/button";
 import { Trash2 } from "lucide-react";
-import { Sheet, SheetContent, SheetTrigger } from "../ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetHeader, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { Skeleton } from "../ui/skeleton";
 import { useEffect, useState } from "react";
 import { Thread } from "@langchain/langgraph-sdk";
@@ -11,7 +11,7 @@ import { TighterText } from "../ui/header";
 import { useGraphContext } from "@/contexts/GraphContext";
 import { useToast } from "@/hooks/use-toast";
 import React, { FC } from "react";
-import { Dialog } from "../ui/dialog";
+import { Dialog } from "@radix-ui/react-dialog";
 
 interface ThreadHistoryProps {
   switchSelectedThreadCallback: (thread: Thread) => void;
@@ -64,7 +64,8 @@ const LoadingThread = () => <Skeleton className="w-full h-8" />;
 const convertThreadActualToThreadProps = (
   thread: Thread,
   switchSelectedThreadCallback: (thread: Thread) => void,
-  deleteThread: (id: string) => void
+  deleteThread: (id: string) => void,
+  onCloseSheet: () => void
 ): ThreadProps => ({
   id: thread.thread_id,
   label:
@@ -73,7 +74,8 @@ const convertThreadActualToThreadProps = (
       "Untitled"),
   createdAt: new Date(thread.created_at),
   onClick: () => {
-    return switchSelectedThreadCallback(thread);
+    switchSelectedThreadCallback(thread);
+    onCloseSheet();
   },
   onDelete: () => {
     return deleteThread(thread.thread_id);
@@ -83,7 +85,8 @@ const convertThreadActualToThreadProps = (
 const groupThreads = (
   threads: Thread[],
   switchSelectedThreadCallback: (thread: Thread) => void,
-  deleteThread: (id: string) => void
+  deleteThread: (id: string) => void,
+  onCloseSheet: () => void
 ) => {
   const today = new Date();
   const yesterday = subDays(today, 1);
@@ -100,7 +103,8 @@ const groupThreads = (
         convertThreadActualToThreadProps(
           t,
           switchSelectedThreadCallback,
-          deleteThread
+          deleteThread,
+          onCloseSheet
         )
       ),
     yesterday: threads
@@ -113,7 +117,8 @@ const groupThreads = (
         convertThreadActualToThreadProps(
           t,
           switchSelectedThreadCallback,
-          deleteThread
+          deleteThread,
+          onCloseSheet
         )
       ),
     lastSevenDays: threads
@@ -131,7 +136,8 @@ const groupThreads = (
         convertThreadActualToThreadProps(
           t,
           switchSelectedThreadCallback,
-          deleteThread
+          deleteThread,
+          onCloseSheet
         )
       ),
     older: threads
@@ -144,7 +150,8 @@ const groupThreads = (
         convertThreadActualToThreadProps(
           t,
           switchSelectedThreadCallback,
-          deleteThread
+          deleteThread,
+          onCloseSheet
         )
       ),
   };
@@ -238,7 +245,8 @@ export const ThreadHistory: FC<ThreadHistoryProps> = ({
       switchSelectedThread(thread);
       switchSelectedThreadCallback(thread);
     },
-    handleDeleteThread
+    handleDeleteThread,
+    onClose
   );
 
   return (
@@ -246,19 +254,24 @@ export const ThreadHistory: FC<ThreadHistoryProps> = ({
       <Sheet open={isOpen} onOpenChange={onClose}>
         <SheetContent
           side="left"
-          className="border-none overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100"
+          className="border-none overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 scrollbar-track-gray-100 p-4"
         >
-          <TighterText className="px-2 text-lg text-gray-600">
-            Chat History
-          </TighterText>
+          <SheetHeader className="mb-4">
+            <SheetTitle className="text-lg font-semibold text-gray-800">
+              Chat History
+            </SheetTitle>
+            <SheetDescription className="text-sm text-gray-500">
+              Browse and manage your past conversations.
+            </SheetDescription>
+          </SheetHeader>
           {isUserThreadsLoading && !userThreads.length ? (
-            <div className="flex flex-col gap-1 px-2 pt-3">
+            <div className="flex flex-col gap-1 pt-3">
               {Array.from({ length: 25 }).map((_, i) => (
                 <LoadingThread key={`loading-thread-${i}`} />
               ))}
             </div>
           ) : !userThreads.length ? (
-            <p className="px-3 text-gray-500">No items found in history.</p>
+            <p className="text-gray-500">No items found in history.</p>
           ) : (
             <ThreadsList groupedThreads={groupedThreads} />
           )}

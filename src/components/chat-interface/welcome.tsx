@@ -6,6 +6,8 @@ import { TighterText } from "../ui/header";
 import { NotebookPen } from "lucide-react";
 import { ProgrammingLanguagesDropdown } from "../ui/programming-lang-dropdown";
 import { Button } from "../ui/button";
+import { useGraphContext } from "@/contexts/GraphContext";
+import { ArtifactV3, ArtifactMarkdownV3 } from "@/types";
 
 interface QuickStartButtonsProps {
   handleQuickStart: (
@@ -18,11 +20,20 @@ interface QuickStartButtonsProps {
 
 const QuickStartPrompts = ({ setChatStarted }: QuickStartButtonsProps) => {
   const threadRuntime = useThreadRuntime();
+  const { setGraphContextValue, graphData } = useGraphContext();
+  const { setArtifact } = graphData;
 
   const handleStartIntakeClick = () => {
+    // Set a flag in context to indicate we're starting the BRD process
+    setGraphContextValue('isBRDProcess', true);
+    
+    // Add a simple initial message to guide the AI
     threadRuntime.append({
       role: "user",
-      content: [{ type: "text", text: "Let's start creating a Business Intake Document." }],
+      content: [{ 
+        type: "text", 
+        text: "I'd like to create an AI Use Case document. I'll use the wizard to provide key details, and then you'll help generate a comprehensive document that follows the standard template." 
+      }],
     });
     setChatStarted(true);
   };

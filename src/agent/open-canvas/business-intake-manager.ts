@@ -28,6 +28,7 @@ interface BusinessIntakeState {
 
 export class BusinessIntakeManager {
   private state: BusinessIntakeState;
+  private showCanvasCallback: (() => void) | null = null;
 
   constructor() {
     // Initialize the state using the locally defined interface
@@ -37,6 +38,20 @@ export class BusinessIntakeManager {
       // Initialize previousResponse if needed
       previousResponse: undefined 
     };
+  }
+
+  // Add a method to register the showCanvas callback
+  public registerShowCanvasCallback(callback: () => void): void {
+    this.showCanvasCallback = callback;
+  }
+
+  // Call this method when the BRD wizard is complete and ready to show the canvas
+  public showCanvas(): void {
+    if (this.showCanvasCallback) {
+      this.showCanvasCallback();
+    } else {
+      console.warn("Business Intake Manager: No showCanvas callback registered");
+    }
   }
 
   // Modify getCurrentState to return the string state, not the whole object,
