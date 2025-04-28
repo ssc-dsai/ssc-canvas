@@ -88,6 +88,8 @@ type GraphContentType = {
   showCanvas: () => void;
   setGraphContextValue: (key: string, value: any) => void;
   contextValues: Record<string, any>;
+  createThread: (title: string, userId: string) => Promise<Thread | undefined>;
+  switchSelectedThread: (thread: Thread) => void;
 };
 
 const GraphContext = createContext<GraphContentType | undefined>(undefined);
@@ -931,6 +933,16 @@ export function GraphProvider({ children }: { children: ReactNode }) {
   // Retrieve showCanvas from the contextValues, provide a default no-op function
   const showCanvas = contextValues.showCanvas || (() => { console.warn("showCanvas not yet registered in context"); });
 
+  const createThread = async (title: string, userId: string) => {
+    if (threadData.createThread) {
+      // Pass undefined for customModelName if you don't use it
+      const thread = await threadData.createThread(undefined, userId, title);
+      return thread;
+    }
+    // fallback/mock
+    return undefined;
+  };
+
   const contextValue: GraphContentType = {
     userData,
     threadData,
@@ -959,6 +971,8 @@ export function GraphProvider({ children }: { children: ReactNode }) {
     showCanvas,
     setGraphContextValue,
     contextValues,
+    createThread,
+    switchSelectedThread,
   };
 
   return (

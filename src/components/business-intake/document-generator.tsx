@@ -6,7 +6,8 @@ import {
   generateDocumentTitle,
   generateAIUseCAsePrompt,
   createFallbackDocumentContent,
-  getDocumentCreationSuccessMessage
+  getDocumentCreationSuccessMessage,
+  generateRpaPddPrompt
 } from "./document-utils";
 
 /**
@@ -75,7 +76,9 @@ export const DocumentGenerator: React.FC = () => {
       console.log("Generating AI document with form data:", formData);
       
       // Get the prompt for the AI
-      const prompt = generateAIUseCAsePrompt(formData);
+      const prompt = formData.documentType === "RPA_PDD"
+        ? generateRpaPddPrompt(formData)
+        : generateAIUseCAsePrompt(formData);
       
       try {
         // Send the prompt to the AI
@@ -205,4 +208,48 @@ export const DocumentGenerator: React.FC = () => {
   return null;
 };
 
-export default DocumentGenerator; 
+export default DocumentGenerator;
+
+export function generateDocumentContent(formData: WizardFormData): string {
+  if (formData.documentType === DocumentType.RPA_PDD) {
+    // RPA PDD template
+    return `
+# RPA Process Design Document
+
+## 1. Process Name
+${formData.processName}
+
+## 2. Process Description
+${formData.processDescription}
+
+## 3. Business Rules
+${formData.businessRules}
+
+## 4. Systems Involved
+${formData.systemsInvolved}
+
+## 5. Expected Benefits
+${formData.expectedBenefits}
+    `.trim();
+  } else {
+    // AI Use Case template
+    return `
+# AI Use Case Document
+
+## 1. Problem
+${formData.problem}
+
+## 2. Challenges
+${formData.challenges}
+
+## 3. Scope
+${formData.scope}
+
+## 4. Constraints
+${formData.constraints}
+
+## 5. Desired Outcomes
+${formData.desiredOutcomes}
+    `.trim();
+  }
+} 

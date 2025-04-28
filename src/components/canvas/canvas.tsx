@@ -38,17 +38,11 @@ export function CanvasComponent() {
 
   // Check localStorage for in-progress wizard on initial render
   useEffect(() => {
-    console.log("Checking for in-progress wizard, threadId:", threadId);
-    console.log("Current state - showWizard:", showWizard, "isBRDProcess:", isBRDProcess);
-    
-    // Only check if we're not already showing the wizard or artifact
     if (!showWizard && !artifact) {
       const wizardActive = localStorage.getItem(WIZARD_ACTIVE_KEY) === "true";
       const savedThreadId = localStorage.getItem(WIZARD_THREAD_ID_KEY);
       
-      // Only resume wizard if we're on the same thread
       if (wizardActive && savedThreadId === threadId) {
-        console.log("Resuming wizard from localStorage");
         setShowWizard(true);
         setChatStarted(true);
         setGraphContextValue('isBRDProcess', true);
@@ -58,13 +52,7 @@ export function CanvasComponent() {
 
   // Also modify the BRD process detection:
   useEffect(() => {
-    console.log("BRD process detection - isBRDProcess:", isBRDProcess, 
-                "chatStarted:", chatStarted, 
-                "showWizard:", showWizard,
-                "artifact:", !!artifact);
-                
     if (isBRDProcess && chatStarted && !showWizard && !artifact) {
-      console.log("Starting wizard for BRD process");
       setShowWizard(true);
     }
   }, [isBRDProcess, chatStarted, showWizard, artifact]);
@@ -75,8 +63,6 @@ export function CanvasComponent() {
   }, [threadId, user, clearThreadsWithNoValues]);
 
   const handleWizardComplete = (newArtifact: ArtifactV3) => {
-    console.log("Wizard completed, displaying canvas with artifact:", newArtifact);
-    
     // Clear any wizard state from localStorage first
     localStorage.removeItem(WIZARD_DATA_KEY);
     localStorage.removeItem(WIZARD_STEP_KEY);

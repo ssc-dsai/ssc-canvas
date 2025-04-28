@@ -8,6 +8,7 @@ import { ProgrammingLanguagesDropdown } from "../ui/programming-lang-dropdown";
 import { Button } from "../ui/button";
 import { useGraphContext } from "@/contexts/GraphContext";
 import { ArtifactV3, ArtifactMarkdownV3 } from "@/types";
+import { DocumentType } from "@/components/business-intake/document-utils";
 
 interface QuickStartButtonsProps {
   handleQuickStart: (
@@ -20,10 +21,13 @@ interface QuickStartButtonsProps {
 
 const QuickStartPrompts = ({ setChatStarted }: QuickStartButtonsProps) => {
   const threadRuntime = useThreadRuntime();
-  const { setGraphContextValue, graphData } = useGraphContext();
+  const { setGraphContextValue, graphData, createThread, switchSelectedThread, userData } = useGraphContext();
   const { setArtifact } = graphData;
 
-  const handleStartIntakeClick = () => {
+  const handleStartIntakeClick = (type = DocumentType.AI_USE_CASE) => {
+    // Store the document type to use in the wizard
+    localStorage.setItem("business-intake-wizard-document-type", type);
+    
     // Set a flag in context to indicate we're starting the BRD process
     setGraphContextValue('isBRDProcess', true);
     
@@ -32,63 +36,70 @@ const QuickStartPrompts = ({ setChatStarted }: QuickStartButtonsProps) => {
       role: "user",
       content: [{ 
         type: "text", 
-        text: "I'd like to create an AI Use Case document. I'll use the wizard to provide key details, and then you'll help generate a comprehensive document that follows the standard template." 
+        text: type === DocumentType.RPA_PDD 
+          ? "I'd like to create an RPA Process Design Document. I'll use the wizard to provide key details."
+          : "I'd like to create an AI Use Case document. I'll use the wizard to provide key details." 
       }],
     });
     setChatStarted(true);
+  };
+
+  const startWizardWithNewThread = async (documentType: DocumentType) => {
+    if (!createThread || !switchSelectedThread) {
+      console.error("Thread functions not available in GraphContext");
+      return;
+    }
+    if (!userData.user) {
+      console.error("No user found");
+      return;
+    }
+    try {
+      const title = documentType === DocumentType.RPA_PDD
+        ? "RPA Process Design Document"
+        : "AI Use Case Document";
+      // Pass title and userId
+      const thread = await createThread(title, userData.user.id);
+      if (thread) {
+        localStorage.setItem("business-intake-wizard-active", "true");
+        localStorage.setItem("business-intake-wizard-thread-id", thread.thread_id);
+        localStorage.setItem("business-intake-wizard-document-type", documentType);
+
+        // Set the context value so the wizard shows up
+        setGraphContextValue('isBRDProcess', true);
+
+        switchSelectedThread(thread);
+      }
+    } catch (error) {
+      console.error("Error creating new thread for wizard:", error);
+    }
+  };
+
+  const handleCreateRpaPdd = async () => {
+    await startWizardWithNewThread(DocumentType.RPA_PDD);
   };
 
   return (
     <div className="flex flex-col w-full gap-2 text-gray-700 items-center">
       <div className="flex gap-2 w-full max-w-xs">
         <Button
-          onClick={handleStartIntakeClick}
+          onClick={() => handleStartIntakeClick(DocumentType.AI_USE_CASE)}
           variant="outline"
           className="flex-1 hover:bg-gray-50 transition-colors"
         >
           <TighterText>
-            Start Business Intake Document
-            <span className="hidden">
-              Tasks: Follow these tasks in order
-              1. The purpose of this engagement document is to inform potential clients of the current engagement and business intake process for incubating AI and IA use case with the DSAI team.
-              2. Create a sample template for the intake document
-              3. Goal is to fill out section 1.3, YOU MUST PROMPT the user to retrieve the problem statement, start by givin an example of an AI use case problem statement.
+            Start AI Use Case Document
+          </TighterText>
+        </Button>
+      </div>
 
-             The document should follow the following Table of Contents Format:
-              Artificial Intelligence Use Case
-              -1    Introduction
-              -1.1  Purpose
-              -1.2  Background
-              -1.3  Proposed Use Case
-                a.  Problem
-                b.  Challenges
-                c.  Scope
-                d.  Constraints
-                e.  Success Criteria
-                f.  Timeline
-                g.  Desired Outcome
-                h.  Scope
-              -1.4  Measuring Success
-                a.  Existing Metrics or KPI
-              -1.5  Artificial Intelligne and Machine Learning Overview
-                a.  Artificial Intelligence Lifecycle
-              -2    CTOB AI COE Standard Service Offering
-              -2.1  High-Level Flow
-              -2.2  Roles and Responsibilities
-                a.  AICOE Responsibilities
-                b.  Client Responsibilities
-              -2.3  AICOE Extended Service Offering
-              -2.4  Continuous Monitoring
-              -3    Use Case Planning
-              -3.1  SSC AI Viability Model
-              -3.2  Responsible Use of Artificial Intelligence (AI)
-              -3.3  Human Resources and Costing
-              -3.4  Training
-              -3.5  Funding
-              -3.6  Acceptable Testing
-              -3.7  Day-2 Operations
-              -3.8  Contact Information
-            </span>
+      <div className="flex gap-2 w-full max-w-xs mt-2">
+        <Button
+          onClick={handleCreateRpaPdd}
+          variant="outline"
+          className="flex-1 hover:bg-green-50 transition-colors border-green-200 text-green-700"
+        >
+          <TighterText>
+            Start RPA Process Design Document
           </TighterText>
         </Button>
       </div>

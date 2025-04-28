@@ -6,20 +6,91 @@ import { ArtifactMarkdownV3, ArtifactV3 } from "@/types";
 import { 
   createPlaceholderArtifact, 
   storeFormDataForAI,
-  generateDocumentTitle
+  generateDocumentTitle,
+  DocumentType
 } from "./document-utils";
+import { WizardFormData } from "./wizard-types";
 
 // Keys for localStorage
 const WIZARD_DATA_KEY = "business-intake-wizard-data";
 const WIZARD_STEP_KEY = "business-intake-wizard-step";
 const WIZARD_ACTIVE_KEY = "business-intake-wizard-active";
 const WIZARD_THREAD_ID_KEY = "business-intake-wizard-thread-id";
+const WIZARD_TYPE_KEY = "business-intake-wizard-document-type";
 
 interface BusinessIntakeWizardProps {
   onComplete: (artifact: ArtifactV3) => void;
   onCancel: () => void;
   threadId: string;
 }
+
+// Step configs for each document type
+const WIZARD_STEPS = {
+  [DocumentType.AI_USE_CASE]: [
+    {
+      key: "problem",
+      label: "Problem",
+      description: "Define the specific business problem that AI could help solve.",
+      placeholder: "Examples: Customer service response times are too slow; Document processing is error-prone and time-consuming; ..."
+    },
+    {
+      key: "challenges",
+      label: "Challenges",
+      description: "Outline the challenges associated with the problem.",
+      placeholder: "Examples: High volume of unstructured data; Lack of skilled resources; ..."
+    },
+    {
+      key: "scope",
+      label: "Scope",
+      description: "Define the boundaries of the AI solution.",
+      placeholder: "Examples: Implementing a chatbot for customer inquiries; ..."
+    },
+    {
+      key: "constraints",
+      label: "Constraints",
+      description: "Identify constraints that may impact the AI solution.",
+      placeholder: "Examples: Budget limit of $X; Must be implemented within 6 months; ..."
+    },
+    {
+      key: "desiredOutcomes",
+      label: "Desired Outcomes",
+      description: "Specify the outcomes you hope to achieve with this AI solution.",
+      placeholder: "Examples: Reduce processing time by 50%; Improve accuracy from 85% to 95%; ..."
+    }
+  ],
+  [DocumentType.RPA_PDD]: [
+    {
+      key: "processName",
+      label: "Process Name",
+      description: "Name the business process to be automated with RPA.",
+      placeholder: "Examples: Invoice Processing; Customer Onboarding; ..."
+    },
+    {
+      key: "processDescription",
+      label: "Process Description",
+      description: "Describe the current process that needs automation.",
+      placeholder: "Describe the step-by-step flow of the current process, including who performs each step, how long it takes, and any pain points..."
+    },
+    {
+      key: "businessRules",
+      label: "Business Rules",
+      description: "Define the business rules that govern this process.",
+      placeholder: "Examples: Invoices over $10,000 require manager approval; ..."
+    },
+    {
+      key: "systemsInvolved",
+      label: "Systems Involved",
+      description: "List the systems and applications involved in this process.",
+      placeholder: "Examples: SAP ERP, Microsoft Excel, Email (Outlook), ..."
+    },
+    {
+      key: "expectedBenefits",
+      label: "Expected Benefits",
+      description: "Describe the benefits expected from automating this process.",
+      placeholder: "Examples: 70% reduction in processing time; 100% accuracy in data entry; ..."
+    }
+  ]
+};
 
 // Step component with circular indicator
 const StepIndicator = ({ step, currentStep, totalSteps }: { step: number; currentStep: number; totalSteps: number }) => {
@@ -57,90 +128,183 @@ const StepIndicator = ({ step, currentStep, totalSteps }: { step: number; curren
 
 // Function to get step title
 const getStepTitle = (step: number) => {
-  switch (step) {
-    case 1: return "Problem";
-    case 2: return "Challenges";
-    case 3: return "Scope";
-    case 4: return "Constraints";
-    case 5: return "Outcomes";
-    default: return `Step ${step}`;
+  const documentTypeFromStorage = localStorage.getItem(WIZARD_TYPE_KEY);
+  
+  // Check if we're in RPA PDD mode
+  if (documentTypeFromStorage === DocumentType.RPA_PDD) {
+    switch (step) {
+      case 1: return "Process Name";
+      case 2: return "Description";
+      case 3: return "Rules";
+      case 4: return "Systems";
+      case 5: return "Benefits";
+      default: return `Step ${step}`;
+    }
+  } else {
+    // Default to AI Use Case
+    switch (step) {
+      case 1: return "Problem";
+      case 2: return "Challenges";
+      case 3: return "Scope";
+      case 4: return "Constraints";
+      case 5: return "Outcomes";
+      default: return `Step ${step}`;
+    }
   }
 };
 
 export function BusinessIntakeWizard({ onComplete, onCancel, threadId }: BusinessIntakeWizardProps) {
-  const [wizardStep, setWizardStep] = useState(1);
-  const [formData, setFormData] = useState({
-    problem: '',
-    challenges: '',
-    scope: '',
-    constraints: '',
-    desiredOutcomes: ''
-  });
-  
-  // Total number of steps in the wizard - one for each subsection of 1.3
-  const totalWizardSteps = 5;
+  // 1. Get documentType from localStorage synchronously
+  const getInitialDocumentType = () => {
+    const storedType = typeof window !== "undefined" ? localStorage.getItem(WIZARD_TYPE_KEY) : null;
+    return storedType === DocumentType.RPA_PDD ? DocumentType.RPA_PDD : DocumentType.AI_USE_CASE;
+  };
 
-  // Load saved wizard state from localStorage
+  const [documentType, setDocumentType] = useState<DocumentType>(getInitialDocumentType);
+
+  // 2. When threadId changes, update documentType (in case of thread switch)
   useEffect(() => {
-    try {
-      // Mark wizard as active
-      localStorage.setItem(WIZARD_ACTIVE_KEY, "true");
-      localStorage.setItem(WIZARD_THREAD_ID_KEY, threadId);
-    
-      // Load saved step if it's for the same thread
-      const savedThreadId = localStorage.getItem(WIZARD_THREAD_ID_KEY);
-      if (savedThreadId === threadId) {
-        const savedStep = localStorage.getItem(WIZARD_STEP_KEY);
-        if (savedStep) {
-          setWizardStep(parseInt(savedStep, 10));
-        }
-        
-        // Load saved data
-        const savedData = localStorage.getItem(WIZARD_DATA_KEY);
-        if (savedData) {
-          setFormData(JSON.parse(savedData));
-        }
-      }
-    } catch (error) {
-      console.error("Error loading wizard data:", error);
-    }
+    const storedType = localStorage.getItem(WIZARD_TYPE_KEY);
+    setDocumentType(storedType === DocumentType.RPA_PDD ? DocumentType.RPA_PDD : DocumentType.AI_USE_CASE);
   }, [threadId]);
 
-  // Save wizard state to localStorage
-  useEffect(() => {
-    localStorage.setItem(WIZARD_STEP_KEY, wizardStep.toString());
-    localStorage.setItem(WIZARD_DATA_KEY, JSON.stringify(formData));
-  }, [wizardStep, formData]);
+  // 3. Now use documentType to initialize formData and steps
+  const steps = WIZARD_STEPS[documentType];
+  const totalWizardSteps = steps.length;
 
-  // Handle form field changes
+  const initFormData = (): WizardFormData => {
+    if (documentType === DocumentType.RPA_PDD) {
+      return {
+        documentType,
+        processName: '',
+        processDescription: '',
+        businessRules: '',
+        systemsInvolved: '',
+        expectedBenefits: ''
+      };
+    } else {
+      return {
+        documentType: DocumentType.AI_USE_CASE,
+        problem: '',
+        challenges: '',
+        scope: '',
+        constraints: '',
+        desiredOutcomes: ''
+      };
+    }
+  };
+
+  // 4. Only initialize formData after documentType is set
+  const [formData, setFormData] = useState<WizardFormData>(initFormData());
+
+  // 5. When documentType changes (e.g. after thread switch), reset formData
+  useEffect(() => {
+    setFormData(initFormData());
+  }, [documentType]);
+
+  const [wizardStep, setWizardStep] = useState(1);
+  
+  // Get step title based on document type
+  const getStepTitleWithType = (step: number) => {
+    if (documentType === DocumentType.RPA_PDD) {
+      switch (step) {
+        case 1: return "Process Name";
+        case 2: return "Description";
+        case 3: return "Rules";
+        case 4: return "Systems";
+        case 5: return "Benefits";
+        default: return `Step ${step}`;
+      }
+    } else {
+      switch (step) {
+        case 1: return "Problem";
+        case 2: return "Challenges";
+        case 3: return "Scope";
+        case 4: return "Constraints";
+        case 5: return "Outcomes";
+        default: return `Step ${step}`;
+      }
+    }
+  };
+  
+  // Load saved state from localStorage
+  useEffect(() => {
+    const savedData = localStorage.getItem(WIZARD_DATA_KEY);
+    const savedStep = localStorage.getItem(WIZARD_STEP_KEY);
+    const savedType = localStorage.getItem(WIZARD_TYPE_KEY);
+    
+    // Mark wizard as active
+    localStorage.setItem(WIZARD_ACTIVE_KEY, "true");
+    localStorage.setItem(WIZARD_THREAD_ID_KEY, threadId || "");
+    localStorage.setItem(WIZARD_TYPE_KEY, documentType);
+    
+    if (savedData) {
+      try {
+        const parsedData = JSON.parse(savedData);
+        // Only load data if the document type matches or if it's a new wizard
+        if (savedType === documentType || !savedType) {
+          setFormData(parsedData);
+        } else {
+          // If document type changed, initialize with new type
+          setFormData(initFormData());
+        }
+      } catch (e) {
+        console.error("Error parsing saved wizard data:", e);
+        setFormData(initFormData());
+      }
+    }
+    
+    if (savedStep && savedType === documentType) {
+      try {
+        setWizardStep(parseInt(savedStep, 10));
+      } catch (e) {
+        console.error("Error parsing saved wizard step:", e);
+        setWizardStep(1);
+      }
+    }
+  }, [threadId, documentType]);
+  
+  // Save current state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem(WIZARD_DATA_KEY, JSON.stringify(formData));
+    localStorage.setItem(WIZARD_STEP_KEY, wizardStep.toString());
+  }, [formData, wizardStep]);
+  
+  // Handle input changes
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }));
   };
-
-  // Go to previous step
-  const handlePrevious = () => {
-    if (wizardStep > 1) {
-      setWizardStep(wizardStep - 1);
-    }
-  };
-
-  // Go to next step
+  
+  // Navigation functions
   const handleNext = () => {
     if (wizardStep < totalWizardSteps) {
       setWizardStep(wizardStep + 1);
     }
   };
-
-  // Complete the wizard
+  
+  const handlePrevious = () => {
+    if (wizardStep > 1) {
+      setWizardStep(wizardStep - 1);
+    }
+  };
+  
+  // Handle finish
   const handleFinish = () => {
-    console.log("Creating AI-generated Use Case document with data:", formData);
+    console.log("Creating document with data:", formData);
     
     // Create a placeholder artifact
-    const documentTitle = generateDocumentTitle(formData.problem);
-    const placeholderArtifact = createPlaceholderArtifact(documentTitle);
+    let title = "";
+    if (documentType === DocumentType.RPA_PDD) {
+      title = formData.processName || "RPA Process Design Document";
+    } else {
+      title = generateDocumentTitle(formData.problem || "");
+    }
+    
+    // Create placeholder artifact
+    const placeholderArtifact = createPlaceholderArtifact(title, documentType);
     
     // Clear localStorage
     localStorage.removeItem(WIZARD_DATA_KEY);
@@ -148,14 +312,11 @@ export function BusinessIntakeWizard({ onComplete, onCancel, threadId }: Busines
     localStorage.removeItem(WIZARD_ACTIVE_KEY);
     localStorage.removeItem(WIZARD_THREAD_ID_KEY);
     
-    // Store form data for AI processing
-    storeFormDataForAI(formData, threadId);
-    
     // Call the completion handler with the placeholder artifact
-    console.log("Calling onComplete with placeholder - AI will generate full document");
+    storeFormDataForAI(formData, threadId);
     onComplete(placeholderArtifact);
   };
-
+  
   // Handle cancel
   const handleCancel = () => {
     localStorage.removeItem(WIZARD_DATA_KEY);
@@ -165,119 +326,79 @@ export function BusinessIntakeWizard({ onComplete, onCancel, threadId }: Busines
     onCancel();
   };
 
-  // Render the current step
+  // Render the appropriate step based on document type
   const renderStep = () => {
-    switch (wizardStep) {
-      case 1:
-        return (
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold">1. Problem</h2>
-            <p className="text-sm text-gray-600">Define the specific business problem that AI could help solve.</p>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">What is the core problem you're trying to address?</label>
-              <textarea 
-                className="w-full p-2 border rounded-md" 
-                rows={6}
-                value={formData.problem}
-                onChange={(e) => handleInputChange('problem', e.target.value)}
-                placeholder="Examples: Customer service response times are too slow; Document processing is error-prone and time-consuming; We need to predict equipment failures before they occur..."
-              />
-            </div>
-          </div>
-        );
-      
-      case 2:
-        return (
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold">2. Challenges</h2>
-            <p className="text-sm text-gray-600">Outline the challenges associated with the problem.</p>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">What challenges do you face in addressing this problem?</label>
-              <textarea 
-                className="w-full p-2 border rounded-md" 
-                rows={6}
-                value={formData.challenges}
-                onChange={(e) => handleInputChange('challenges', e.target.value)}
-                placeholder="Examples: High volume of unstructured data; Lack of skilled resources; Rapidly changing conditions; Need to integrate with legacy systems..."
-              />
-            </div>
-          </div>
-        );
-        
-      case 3:
-        return (
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold">3. Scope</h2>
-            <p className="text-sm text-gray-600">Define the boundaries of the AI solution.</p>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">What is the scope of this AI initiative?</label>
-              <textarea 
-                className="w-full p-2 border rounded-md" 
-                rows={6}
-                value={formData.scope}
-                onChange={(e) => handleInputChange('scope', e.target.value)}
-                placeholder="Examples: Implementing a chatbot for customer inquiries; Developing an AI-based document classification system; Creating a predictive maintenance solution for manufacturing equipment..."
-              />
-            </div>
-          </div>
-        );
-        
-      case 4:
-        return (
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold">4. Constraints</h2>
-            <p className="text-sm text-gray-600">Identify constraints that may impact the AI solution.</p>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">What constraints must be considered?</label>
-              <textarea 
-                className="w-full p-2 border rounded-md" 
-                rows={6}
-                value={formData.constraints}
-                onChange={(e) => handleInputChange('constraints', e.target.value)}
-                placeholder="Examples: Budget limit of $X; Must be implemented within 6 months; Compliance with GDPR/HIPAA; Limited availability of training data; Need to work with existing systems..."
-              />
-            </div>
-          </div>
-        );
-        
-      case 5:
-        return (
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold">5. Desired Outcomes</h2>
-            <p className="text-sm text-gray-600">Specify the outcomes you hope to achieve with this AI solution.</p>
-            <div className="space-y-2">
-              <label className="block text-sm font-medium">What outcomes do you want to achieve?</label>
-              <textarea 
-                className="w-full p-2 border rounded-md" 
-                rows={6}
-                value={formData.desiredOutcomes}
-                onChange={(e) => handleInputChange('desiredOutcomes', e.target.value)}
-                placeholder="Examples: Reduce processing time by 50%; Improve accuracy from 85% to 95%; Decrease operational costs by 30%; Enable 24/7 customer support; Identify 90% of potential failures at least 48 hours in advance..."
-              />
-            </div>
-          </div>
-        );
-        
-      default:
-        return <div>Unknown step</div>;
-    }
+    const stepConfig = steps[wizardStep - 1];
+    return (
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold">{wizardStep}. {stepConfig.label}</h2>
+        <p className="text-sm text-gray-600">{stepConfig.description}</p>
+        <div className="space-y-2">
+          <label htmlFor={stepConfig.key} className="block text-sm font-medium">
+            {stepConfig.label}
+          </label>
+          <textarea
+            id={stepConfig.key}
+            className="w-full p-2 border rounded-md"
+            rows={6}
+            value={formData[stepConfig.key] || ""}
+            onChange={e => handleInputChange(stepConfig.key, e.target.value)}
+            placeholder={stepConfig.placeholder}
+          />
+        </div>
+      </div>
+    );
+  };
+
+  // Updated StepIndicator component that includes document type
+  const StepIndicatorWithType = ({ step, currentStep }: { step: number; currentStep: number }) => {
+    const isActive = step === currentStep;
+    const isCompleted = step < currentStep;
+    return (
+      <div className="flex flex-col items-center">
+        <div
+          className={cn(
+            "w-10 h-10 rounded-full flex items-center justify-center text-sm font-medium border-2 transition-all",
+            isActive ? "border-blue-500 bg-blue-100 text-blue-700" :
+              isCompleted ? "border-green-500 bg-green-100 text-green-700" :
+                "border-gray-300 bg-gray-50 text-gray-500"
+          )}
+        >
+          {isCompleted ? (
+            <svg className="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            step
+          )}
+        </div>
+        <div className={cn(
+          "text-xs mt-1",
+          isActive ? "text-blue-600 font-medium" :
+            isCompleted ? "text-green-600" : "text-gray-500"
+        )}>
+          {steps[step - 1].label}
+        </div>
+      </div>
+    );
   };
 
   return (
     <div className="h-full flex flex-col p-6 bg-white">
       <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-6">AI Use Case Wizard</h1>
+        <h1 className="text-2xl font-bold mb-6">
+          {documentType === DocumentType.RPA_PDD ? 'RPA Process Design Document Wizard' : 'AI Use Case Wizard'}
+        </h1>
         
         {/* Circular step indicators */}
         <div className="flex justify-between items-center mb-8 px-8">
-          {Array.from({ length: totalWizardSteps }).map((_, i) => (
+          {steps.map((_, i) => (
             <Fragment key={i + 1}>
-              <StepIndicator 
-                step={i + 1} 
-                currentStep={wizardStep} 
-                totalSteps={totalWizardSteps} 
+              <StepIndicatorWithType
+                step={i + 1}
+                currentStep={wizardStep}
               />
-              {i < totalWizardSteps - 1 && (
+              {i < steps.length - 1 && (
                 <div className={cn(
                   "h-1 flex-grow mx-2",
                   i < wizardStep - 1 ? "bg-green-400" : "bg-gray-200"
