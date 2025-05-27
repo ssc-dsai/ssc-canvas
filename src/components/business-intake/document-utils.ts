@@ -231,57 +231,18 @@ export function generateRpaPddPrompt(formData: {
   systemsInvolved?: string;
   expectedBenefits?: string;
 }) {
-  return `You are an expert RPA process analyst and technical writer.
-Please create a very detailed and comprehensive RPA Process Design Document based on the following information and assumptions. Each section should be very detailed and comprehensive and at least 3-5 sentences:
+  return `
+You are an expert RPA process analyst and technical writer.
+Please create a comprehensive RPA Process Design Document in Markdown format, following best industry standards and including all typical sections and subsections (such as Introduction, Process Overview, Solution Design, Implementation Plan, Expected Outcomes, Appendices, etc.).
+
+Each section should be detailed (at least 3-5 sentences), professional, and include examples where appropriate. Incorporate the following user-provided information into the relevant sections, especially the Process Overview. If any information is missing, make reasonable assumptions.
 
 Process Name: ${formData.processName || "Not specified"}
 Process Description: ${formData.processDescription || "Not specified"}
 Business Rules: ${formData.businessRules || "Not specified"}
 Systems Involved: ${formData.systemsInvolved || "Not specified"}
 Expected Benefits: ${formData.expectedBenefits || "Not specified"}
-
-Follow this structure precisely:
-# RPA Process Design Document
-
-## 1. Introduction
-
-### 1.1 Purpose
-### 1.2 Background
-### 1.3 Process Overview
-#### a. Process Name
-#### b. Process Description
-#### c. Business Rules
-#### d. Systems Involved
-#### e. Expected Benefits
-### 1.4 Stakeholders
-### 1.5 Current Challenges
-
-## 2. RPA Solution Design
-
-### 2.1 Solution Overview
-### 2.2 High-Level Process Flow
-### 2.3 Exception Handling
-### 2.4 Security and Compliance
-
-## 3. Implementation Plan
-
-### 3.1 Development Approach
-### 3.2 Deployment Plan
-### 3.3 Training and Change Management
-### 3.4 Maintenance and Support
-
-## 4. Expected Outcomes and KPIs
-
-### 4.1 Quantitative Benefits
-### 4.2 Qualitative Benefits
-### 4.3 Key Performance Indicators (KPIs)
-
-## 5. Appendices
-
-### 5.1 Glossary
-### 5.2 Contact Information
-
-Be detailed and professional. Incorporate the provided information into the document, especially in section 1.3 Process Overview. If any information is missing, make reasonable assumptions based on industry standards. Format the document using proper Markdown syntax.`;
+`.trim();
 }
 
 export function generateRpaPddMarkdown(formData: {
@@ -297,10 +258,10 @@ export function generateRpaPddMarkdown(formData: {
 ## 1. Introduction
 
 ### 1.1 Purpose
-This document describes the purpose and objectives of the RPA Process Design Document, outlining the goals and intended outcomes of automating the process.
+_This section describes the purpose of this RPA Process Design Document and what it aims to achieve._
 
 ### 1.2 Background
-Robotic Process Automation (RPA) is increasingly used to streamline business operations, reduce manual effort, and improve accuracy. This document provides background on why this process is being considered for automation.
+_Provide background information about the business context and why this process is being considered for automation._
 
 ### 1.3 Process Overview
 
@@ -320,65 +281,65 @@ ${formData.systemsInvolved || "_Not specified_"}
 ${formData.expectedBenefits || "_Not specified_"}
 
 ### 1.4 Stakeholders
-Key stakeholders include business owners, process participants, IT support, and the RPA development team. Their roles and responsibilities will be defined in the project plan.
+_List the key stakeholders involved in the process and their roles._
 
 ### 1.5 Current Challenges
-This section outlines the main challenges or pain points in the current (manual) process, such as inefficiencies, error rates, or compliance risks.
+_Describe the main challenges or pain points in the current (manual) process._
 
 ---
 
 ## 2. RPA Solution Design
 
 ### 2.1 Solution Overview
-A high-level overview of the proposed RPA solution, including its main features and how it addresses the business needs.
+_Provide a high-level overview of the proposed RPA solution._
 
 ### 2.2 High-Level Process Flow
-A description of the main steps of the automated process, including any decision points or exceptions. A flow diagram may be included in the final document.
+_Describe the main steps of the automated process, possibly with a flow diagram (describe in text)._
 
 ### 2.3 Exception Handling
-An explanation of how exceptions and errors will be handled in the automated process, including escalation paths and logging.
+_Explain how exceptions and errors will be handled in the automated process._
 
 ### 2.4 Security and Compliance
-A discussion of any security, privacy, or compliance considerations for the RPA solution, such as data protection and audit requirements.
+_Discuss any security, privacy, or compliance considerations for the RPA solution._
 
 ---
 
 ## 3. Implementation Plan
 
 ### 3.1 Development Approach
-A description of the approach for developing and testing the RPA solution, including methodologies, tools, and timelines.
+_Describe the approach for developing and testing the RPA solution._
 
 ### 3.2 Deployment Plan
-An outline of the plan for deploying the RPA solution into production, including cutover steps and rollback procedures.
+_Outline the plan for deploying the RPA solution into production._
 
 ### 3.3 Training and Change Management
-A description of how users will be trained and how change management will be handled to ensure successful adoption.
+_Describe how users will be trained and how change management will be handled._
 
 ### 3.4 Maintenance and Support
-An explanation of how the RPA solution will be maintained and supported after deployment, including monitoring and incident management.
+_Explain how the RPA solution will be maintained and supported after deployment._
 
 ---
 
 ## 4. Expected Outcomes and KPIs
 
 ### 4.1 Quantitative Benefits
-A list of measurable benefits, such as time savings, error reduction, and cost savings, expected from the RPA implementation.
+_List measurable benefits (e.g., time savings, error reduction, cost savings)._
 
 ### 4.2 Qualitative Benefits
-A description of qualitative improvements, such as increased employee satisfaction, improved compliance, or better customer experience.
+_Describe qualitative improvements (e.g., employee satisfaction, compliance)._
 
 ### 4.3 Key Performance Indicators (KPIs)
-A definition of the KPIs that will be used to measure the success of the RPA implementation.
+_Define the KPIs that will be used to measure the success of the RPA implementation._
 
 ---
 
 ## 5. Appendices
 
 ### 5.1 Glossary
-Definitions for any technical terms or acronyms used in this document.
+_Provide definitions for any technical terms or acronyms used._
 
 ### 5.2 Contact Information
-Contact details for the project team and key stakeholders.
+_List contact details for the project team and stakeholders._
 `.trim();
 }
 

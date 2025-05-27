@@ -14,7 +14,7 @@ import { getArtifactContent } from "@/contexts/utils";
 import { useGraphContext } from "@/contexts/GraphContext";
 import React from "react";
 import { TooltipIconButton } from "../ui/assistant-ui/tooltip-icon-button";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Download } from "lucide-react";
 import { motion } from "framer-motion";
 import { Textarea } from "../ui/textarea";
 import { cn } from "@/lib/utils";
@@ -247,12 +247,45 @@ export function TextRendererComponent(props: TextRendererProps) {
     });
   };
 
+  // Helper to get the current markdown
+  const getCurrentMarkdown = () => {
+    if (!artifact) return "";
+    const currentContent = artifact.contents.find(
+      (c) => c.index === artifact.currentIndex && c.type === "text"
+    ) as ArtifactMarkdownV3 | undefined;
+    return currentContent?.fullMarkdown || "";
+  };
+
+  // Export handler
+  const handleExport = () => {
+    const markdown = getCurrentMarkdown();
+    const blob = new Blob([markdown], { type: "text/markdown" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "artifact.md";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }, 0);
+  };
+
   return (
     <div className="w-full h-full mt-2 flex flex-col border-t-[1px] border-gray-200 overflow-y-auto py-5 relative">
-      {props.isHovering && artifact && (
+      {artifact && (
         <div className="absolute flex gap-2 top-2 right-4 z-10">
           <CopyText currentArtifactContent={getArtifactContent(artifact)} />
           <ViewRawText isRawView={isRawView} setIsRawView={setIsRawView} />
+          <TooltipIconButton
+            tooltip="Export as Markdown file"
+            variant="outline"
+            delayDuration={400}
+            onClick={handleExport}
+          >
+            <Download className="w-5 h-5 text-gray-600" />
+          </TooltipIconButton>
         </div>
       )}
       {isRawView ? (

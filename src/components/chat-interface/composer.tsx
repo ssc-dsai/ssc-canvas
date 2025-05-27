@@ -32,7 +32,7 @@ export const Composer: FC<ComposerProps> = (props: ComposerProps) => {
       <AssistantSelect userId={props.userId} chatStarted={props.chatStarted} />
       <ComposerPrimitive.Input
         autoFocus
-        placeholder="Write a message..."
+        placeholder="Try 'Create a project proposal for a new AI initiative' or 'Design a technical specification document'"
         rows={1}
         className="placeholder:text-muted-foreground max-h-40 flex-grow resize-none border-none bg-transparent px-2 py-4 text-sm outline-none focus:ring-0 disabled:cursor-not-allowed"
       />

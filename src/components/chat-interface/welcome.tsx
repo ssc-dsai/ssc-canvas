@@ -96,7 +96,7 @@ const QuickStartPrompts = ({ setChatStarted }: QuickStartButtonsProps) => {
         <Button
           onClick={handleCreateRpaPdd}
           variant="outline"
-          className="flex-1 hover:bg-green-50 transition-colors border-green-200 text-green-700"
+          className="flex-1 hover:bg-gray-50 transition-colors"
         >
           <TighterText>
             Start RPA Process Design Document
@@ -115,7 +115,7 @@ const QuickStartButtons = (props: QuickStartButtonsProps) => {
   return (
     <div className="flex flex-col gap-8 items-center justify-center w-full">
       <div className="flex flex-col gap-6 w-full items-center">
-        <p className="text-gray-600 text-sm">Let's get started</p>
+        <p className="text-gray-600 text-sm">What would you like to create today?</p>
         <QuickStartPrompts 
           setChatStarted={props.setChatStarted} 
           handleQuickStart={props.handleQuickStart} 
@@ -148,10 +148,11 @@ export const ThreadWelcome: FC<ThreadWelcomeProps> = (props: ThreadWelcomeProps)
             />
           </div>
           <TighterText className="mt-4 text-lg font-medium">
-            Welcome to Business Intake Canvas
+            Welcome to SSC Canvas
           </TighterText>
           <p className="mt-2 text-sm text-gray-600">
-            Let's create a comprehensive business intake document together. We'll guide you through the process step by step in the chat.
+            Create any type of document with ease. From AI Use Cases to RPA Process Design Documents, 
+            Canvas helps you generate comprehensive, professional documents in minutes.
           </p>
           <div className="mt-8 w-full">
             <QuickStartButtons
@@ -161,7 +162,7 @@ export const ThreadWelcome: FC<ThreadWelcomeProps> = (props: ThreadWelcomeProps)
             />
           </div>
           {props.composer && (
-            <div className="mt-4 max-w-2xl mx-auto">
+            <div className="mt-4 max-w-3xl mx-auto">
               {props.composer}
             </div>
           )}
